@@ -9,6 +9,15 @@
   <title>THE IMPOSSIBLE MACHINE — Prototype 001</title>
   <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
   <link rel="stylesheet" href="./src/style.css" />
+
+  <!-- Native browser Import Map so `import * as THREE from 'three'` works both with and without Vite bundling -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+      }
+    }
+  </script>
 </head>
 <body>
   <!-- 3D Viewport Container -->
@@ -17,12 +26,12 @@
   <!-- Diagnostic / WebGL Error Screen -->
   <div id="webgl-error" class="overlay-screen hidden" role="alert">
     <div class="panel">
-      <p id="error-subtitle" class="subtitle">SYSTEM FAULT</p>
-      <h1 id="error-title" class="title">INITIALIZATION FAILED</h1>
+      <p id="error-subtitle" class="subtitle">SYSTEM DIAGNOSTIC</p>
+      <h1 id="error-title" class="title">STARTUP DIAGNOSTIC</h1>
       <p id="error-description" class="description">
-        An unexpected error prevented the 3D environment from starting.
+        Checking project files...
       </p>
-      <pre id="error-details" style="text-align:left; font-size:0.72rem; color:#ff85a1; background:rgba(0,0,0,0.55); padding:10px; border-radius:6px; overflow-x:auto; white-space:pre-wrap; word-break:break-word; margin-bottom:14px;"></pre>
+      <pre id="error-details" style="text-align:left; font-size:0.74rem; color:#ff85a1; background:rgba(0,0,0,0.65); padding:12px; border-radius:6px; overflow-x:auto; white-space:pre-wrap; word-break:break-word; margin-bottom:14px; line-height:1.45;"></pre>
       <button class="primary-btn" type="button" onclick="window.location.reload()">RETRY LOADING</button>
     </div>
   </div>
@@ -155,62 +164,65 @@
     </div>
   </div>
 
-  <!-- Early Boot Error Catcher for Mobile Debugging (catches module/import errors before main.js runs) -->
-  <script>
+  <!-- Self-Diagnostic Boot Loader -->
+  <script type="module">
     window.__IMPOSSIBLE_MACHINE_BOOTED__ = false;
+
     window.__showFatalBootError = function (title, message, details) {
-      var loading = document.getElementById('loading-screen');
-      var errScreen = document.getElementById('webgl-error');
-      var errTitle = document.getElementById('error-title');
-      var errDesc = document.getElementById('error-description');
-      var errDetails = document.getElementById('error-details');
+      const loading = document.getElementById('loading-screen');
+      const errScreen = document.getElementById('webgl-error');
+      const errTitle = document.getElementById('error-title');
+      const errDesc = document.getElementById('error-description');
+      const errDetails = document.getElementById('error-details');
       if (loading) loading.classList.add('hidden');
       if (errScreen) errScreen.classList.remove('hidden');
       if (errTitle && title) errTitle.textContent = title;
       if (errDesc && message) errDesc.textContent = message;
-      if (errDetails) errDetails.textContent = details || 'No additional stack trace available.';
+      if (errDetails) errDetails.textContent = details || 'No additional details.';
     };
 
-    window.addEventListener('error', function (event) {
-      if (!window.__IMPOSSIBLE_MACHINE_BOOTED__) {
-        var msg = event.message || 'Module or script failed to load.';
-        var src = event.filename ? ('File: ' + event.filename + (event.lineno ? ':' + event.lineno : '')) : '';
-        window.__showFatalBootError(
-          'STARTUP SCRIPT ERROR',
-          'A required JavaScript module failed to load or execute during startup.',
-          msg + (src ? '\n' + src : '')
-        );
-      }
-    });
+    const requiredFiles = [
+      './src/main.js',
+      './src/style.css',
+      './src/game/Game.js',
+      './src/game/World.js',
+      './src/game/Player.js',
+      './src/game/Controls.js',
+      './src/game/Interactions.js',
+      './src/game/SaveSystem.js',
+      './src/game/Effects.js',
+      './src/ui/HUD.js'
+    ];
 
-    window.addEventListener('unhandledrejection', function (event) {
-      if (!window.__IMPOSSIBLE_MACHINE_BOOTED__) {
-        var reason = event.reason ? (event.reason.stack || event.reason.message || String(event.reason)) : 'Unknown promise rejection';
-        window.__showFatalBootError(
-          'STARTUP PROMISE ERROR',
-          'An asynchronous error occurred while initializing the game.',
-          reason
-        );
+    async function verifySourceFiles(importErr) {
+      const results = [];
+      for (const file of requiredFiles) {
+        try {
+          const res = await fetch(file, { method: 'HEAD', cache: 'no-store' });
+          if (!res.ok) {
+            results.push(`❌ MISSING (${res.status}): ${file}`);
+          } else {
+            results.push(`✅ FOUND: ${file}`);
+          }
+        } catch (fetchErr) {
+          results.push(`❌ FETCH ERROR: ${file} (${fetchErr.message})`);
+        }
       }
-    });
 
-    // Watchdog: if main.js has not started after 6 seconds, explain why (e.g. unbuilt GitHub Pages source)
-    setTimeout(function () {
-      if (!window.__IMPOSSIBLE_MACHINE_BOOTED__) {
-        window.__showFatalBootError(
-          'MODULE LOAD TIMEOUT',
-          'The game entry module (src/main.js) did not execute. On GitHub Pages, this usually means Pages is serving the raw source branch instead of the compiled Vite build, or a filename has a capitalization mismatch.',
-          'Check: Repository Settings -> Pages -> Source must be set to "GitHub Actions" (not "Deploy from a branch"). Also verify all files in src/game/ and src/ui/ exist with exact capitalization.'
-        );
-      }
-    }, 6000);
+      const errText = importErr ? `${importErr.name || 'Error'}: ${importErr.message || String(importErr)}\n\n` : '';
+      window.__showFatalBootError(
+        'FILE / MODULE LOAD ERROR',
+        'One or more source files could not be loaded. Check the file list below for any ❌ MISSING items:',
+        errText + results.join('\n')
+      );
+    }
+
+    // Attempt to import main.js; if it fails, scan every file and display exact status
+    import('./src/main.js').catch((err) => {
+      console.error('Failed to import ./src/main.js:', err);
+      verifySourceFiles(err);
+    });
   </script>
-
-  <script
-    type="module"
-    src="./src/main.js"
-    onerror="window.__showFatalBootError('ENTRY MODULE NOT FOUND', 'Failed to load ./src/main.js or one of its imported files.', 'Verify that GitHub Pages is set to deploy via GitHub Actions (dist folder) and that all file paths in src/ match exact upper/lowercase names.')"
-  ></script>
 </body>
   </html>
   

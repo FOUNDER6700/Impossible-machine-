@@ -7,10 +7,10 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
   <title>THE IMPOSSIBLE MACHINE — Prototype 001</title>
-  <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+  <link rel="icon" type="image/svg+xml" href="./public/favicon.svg" />
   <link rel="stylesheet" href="./src/style.css" />
 
-  <!-- Native browser Import Map so `import * as THREE from 'three'` works both with and without Vite bundling -->
+  <!-- Resolves `import * as THREE from 'three'` natively in the browser without requiring a build step -->
   <script type="importmap">
     {
       "imports": {
@@ -217,7 +217,6 @@
       );
     }
 
-    // Attempt to import main.js; if it fails, scan every file and display exact status
     import('./src/main.js').catch((err) => {
       console.error('Failed to import ./src/main.js:', err);
       verifySourceFiles(err);

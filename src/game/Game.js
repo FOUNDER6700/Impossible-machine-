@@ -21,6 +21,40 @@ export class Game {
     this.lastFrameTime = 0;
   }
 
+  createRendererWithFallback() {
+    if (!this.container) {
+      throw new Error('Missing #canvas-container element in index.html');
+    }
+
+    let renderer = null;
+    try {
+      renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        powerPreference: 'high-performance'
+      });
+    } catch (firstErr) {
+      console.warn('High-performance antialiased WebGL context failed, retrying with basic context:', firstErr);
+      renderer = new THREE.WebGLRenderer({
+        antialias: false,
+        powerPreference: 'default'
+      });
+    }
+
+    const cappedDPR = Math.min(window.devicePixelRatio || 1, 1.35);
+    renderer.setPixelRatio(cappedDPR);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.1;
+
+    // Clear any stale canvas elements before appending
+    while (this.container.firstChild) {
+      this.container.removeChild(this.container.firstChild);
+    }
+    this.container.appendChild(renderer.domElement);
+
+    return renderer;
+  }
+
   init() {
     // Step 1: Persistence & State
     this.onProgress(30, 'RESTORING ANOMALY STATE');
@@ -32,24 +66,12 @@ export class Game {
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(
       68,
-      window.innerWidth / window.innerHeight,
+      Math.max(1, window.innerWidth) / Math.max(1, window.innerHeight),
       0.1,
       135
     );
 
-    this.renderer = new THREE.WebGLRenderer({
-      antialias: true,
-      powerPreference: 'high-performance'
-    });
-
-    // Cap pixel ratio at 1.35 for crisp visuals without overheating mobile GPUs
-    const cappedDPR = Math.min(window.devicePixelRatio || 1, 1.35);
-    this.renderer.setPixelRatio(cappedDPR);
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.1;
-
-    this.container.appendChild(this.renderer.domElement);
+    this.renderer = this.createRendererWithFallback();
 
     // Step 3: Procedural World Generation
     this.onProgress(75, 'GENERATING CONTAINMENT BASIN');
@@ -100,9 +122,18 @@ export class Game {
     window.addEventListener('resize', this.handleResize);
     document.addEventListener('visibilitychange', this.handleVisibility);
 
-    // Step 5: Ready
+    // Render one initial frame immediately so the 3D scene is visible behind the Intro modal
+    this.renderer.render(this.scene, this.camera);
+
+    // Step 5: Complete loading & reveal Intro Screen
     this.onProgress(100, 'READY');
     this.hud.showIntro();
+
+    // Explicitly guarantee loading-screen is hidden even if DOM classes were cached
+    const loadingEl = document.getElementById('loading-screen');
+    if (loadingEl) {
+      loadingEl.classList.add('hidden');
+    }
 
     this.isRunning = true;
     this.lastFrameTime = performance.now();
@@ -141,7 +172,7 @@ export class Game {
     const saved = this.saveSystem.getState();
     if (saved.collectedIds.length > 0) {
       this.hud.showNotification(
-        `PROGRESS RESTORED (${ saved.collectedIds.length } / 3 FRAGMENTS)`,
+        `PROGRESS RESTORED (${saved.collectedIds.length} / 3 FRAGMENTS)`,
         2800
       );
     } else {
@@ -212,7 +243,7 @@ export class Game {
 
   onWindowResize() {
     if (!this.camera || !this.renderer) return;
-    this.camera.aspect = window.innerWidth / window.innerHeight;
+    this.camera.aspect = Math.max(1, window.innerWidth) / Math.max(1, window.innerHeight);
     this.camera.updateProjectionMatrix();
     const cappedDPR = Math.min(window.devicePixelRatio || 1, 1.35);
     this.renderer.setPixelRatio(cappedDPR);
@@ -233,10 +264,8 @@ export class Game {
     if (!this.isRunning) return;
     requestAnimationFrame(this.animate);
 
-    // Pause heavy updates when browser tab/app is hidden
     if (document.hidden) return;
 
-    // Clamp delta time to 0.1s max so frame hitches never teleport the player
     const dt = Math.min((now - this.lastFrameTime) / 1000, 0.1);
     this.lastFrameTime = now;
 
@@ -249,7 +278,6 @@ export class Game {
         this.interactions.update();
       } else if (this.inSequence) {
         this.sequenceTimer += dt;
-        // Gently look toward the sky/portal during the 2.4s transformation sequence
         this.camera.rotation.x += (0.18 - this.camera.rotation.x) * dt * 2.0;
         if (this.sequenceTimer >= 2.4) {
           this.inSequence = false;
@@ -272,5 +300,5 @@ export class Game {
     this.effects.dispose();
     this.renderer.dispose();
   }
-      }
-      
+        }
+    

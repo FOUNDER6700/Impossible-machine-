@@ -165,63 +165,38 @@
   </div>
 
   <!-- Self-Diagnostic Boot Loader -->
-  <script type="module">
-    window.__IMPOSSIBLE_MACHINE_BOOTED__ = false;
-
-    window.__showFatalBootError = function (title, message, details) {
-      const loading = document.getElementById('loading-screen');
-      const errScreen = document.getElementById('webgl-error');
-      const errTitle = document.getElementById('error-title');
-      const errDesc = document.getElementById('error-description');
-      const errDetails = document.getElementById('error-details');
-      if (loading) loading.classList.add('hidden');
-      if (errScreen) errScreen.classList.remove('hidden');
-      if (errTitle && title) errTitle.textContent = title;
-      if (errDesc && message) errDesc.textContent = message;
-      if (errDetails) errDetails.textContent = details || 'No additional details.';
-    };
-
-    const requiredFiles = [
-      './src/main.js',
-      './src/style.css',
-      './src/game/Game.js',
-      './src/game/World.js',
-      './src/game/Player.js',
-      './src/game/Controls.js',
-      './src/game/Interactions.js',
+    <script type="module">
+    const jsModules = [
       './src/game/SaveSystem.js',
+      './src/ui/HUD.js',
+      './src/game/Controls.js',
       './src/game/Effects.js',
-      './src/ui/HUD.js'
+      './src/game/Player.js',
+      './src/game/Interactions.js',
+      './src/game/World.js',
+      './src/game/Game.js',
+      './src/main.js'
     ];
 
-    async function verifySourceFiles(importErr) {
-      const results = [];
-      for (const file of requiredFiles) {
+    async function findBrokenFile() {
+      const report = [];
+      for (const file of jsModules) {
         try {
-          const res = await fetch(file, { method: 'HEAD', cache: 'no-store' });
-          if (!res.ok) {
-            results.push(`❌ MISSING (${res.status}): ${file}`);
-          } else {
-            results.push(`✅ FOUND: ${file}`);
-          }
-        } catch (fetchErr) {
-          results.push(`❌ FETCH ERROR: ${file} (${fetchErr.message})`);
+          await import(file + '?v=' + Date.now());
+          report.push('✅ OK: ' + file);
+        } catch (err) {
+          report.push('❌ FIX THIS FILE -> ' + file + '\n   (' + err.message + ')');
         }
       }
-
-      const errText = importErr ? `${importErr.name || 'Error'}: ${importErr.message || String(importErr)}\n\n` : '';
-      window.__showFatalBootError(
-        'FILE / MODULE LOAD ERROR',
-        'One or more source files could not be loaded. Check the file list below for any ❌ MISSING items:',
-        errText + results.join('\n')
-      );
+      document.getElementById('loading-screen').classList.add('hidden');
+      document.getElementById('webgl-error').classList.remove('hidden');
+      document.getElementById('error-title').textContent = 'BROKEN FILE FOUND';
+      document.getElementById('error-description').textContent = 'Re-paste the code for any file marked with ❌ below:';
+      document.getElementById('error-details').textContent = report.join('\n\n');
     }
 
-    import('./src/main.js').catch((err) => {
-      console.error('Failed to import ./src/main.js:', err);
-      verifySourceFiles(err);
-    });
+    import('./src/main.js').catch(() => findBrokenFile());
   </script>
 </body>
-  </html>
+</html>
   

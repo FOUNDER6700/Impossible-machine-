@@ -9,8 +9,6 @@
   <title>THE IMPOSSIBLE MACHINE — Prototype 001</title>
   <link rel="icon" type="image/svg+xml" href="./public/favicon.svg" />
   <link rel="stylesheet" href="./src/style.css" />
-
-  <!-- Resolves `import * as THREE from 'three'` natively in the browser without requiring a build step -->
   <script type="importmap">
     {
       "imports": {
@@ -20,23 +18,18 @@
   </script>
 </head>
 <body>
-  <!-- 3D Viewport Container -->
   <div id="canvas-container" aria-label="3D Game Viewport"></div>
 
-  <!-- Diagnostic / WebGL Error Screen -->
   <div id="webgl-error" class="overlay-screen hidden" role="alert">
     <div class="panel">
       <p id="error-subtitle" class="subtitle">SYSTEM DIAGNOSTIC</p>
       <h1 id="error-title" class="title">STARTUP DIAGNOSTIC</h1>
-      <p id="error-description" class="description">
-        Checking project files...
-      </p>
+      <p id="error-description" class="description">Checking project files...</p>
       <pre id="error-details" style="text-align:left; font-size:0.74rem; color:#ff85a1; background:rgba(0,0,0,0.65); padding:12px; border-radius:6px; overflow-x:auto; white-space:pre-wrap; word-break:break-word; margin-bottom:14px; line-height:1.45;"></pre>
       <button class="primary-btn" type="button" onclick="window.location.reload()">RETRY LOADING</button>
     </div>
   </div>
 
-  <!-- Loading Screen -->
   <div id="loading-screen" class="overlay-screen">
     <div class="panel">
       <p class="subtitle">PROTOTYPE 001</p>
@@ -48,7 +41,6 @@
     </div>
   </div>
 
-  <!-- Intro Screen -->
   <div id="intro-screen" class="overlay-screen hidden">
     <div class="panel">
       <p class="subtitle">ANOMALY SECTOR 001</p>
@@ -74,7 +66,6 @@
     </div>
   </div>
 
-  <!-- Active Gameplay HUD -->
   <div id="hud-layer" class="hud-layer hidden">
     <div class="hud-top">
       <div class="fragment-counter-box">
@@ -82,9 +73,7 @@
         <span id="hud-fragment-count" class="counter-value">0 / 3</span>
         <div id="hud-portal-badge" class="portal-badge">PORTAL DORMANT</div>
       </div>
-      <button id="btn-pause" class="hud-icon-btn" type="button" aria-label="Pause and Settings">
-        SYSTEM
-      </button>
+      <button id="btn-pause" class="hud-icon-btn" type="button" aria-label="Pause and Settings">SYSTEM</button>
     </div>
 
     <div id="crosshair" class="crosshair" aria-hidden="true"></div>
@@ -100,37 +89,22 @@
           <div id="joystick-knob" class="joystick-knob"></div>
         </div>
       </div>
-
       <div id="look-zone" class="look-zone" aria-label="Camera Look Area"></div>
-
-      <button id="btn-interact" class="interact-btn" type="button">
-        INTERACT
-      </button>
+      <button id="btn-interact" class="interact-btn" type="button">INTERACT</button>
     </div>
   </div>
 
-  <!-- Pause & Settings Modal -->
   <div id="pause-screen" class="overlay-screen hidden">
     <div class="panel">
       <p class="subtitle">SYSTEM PAUSED</p>
       <h2 class="title-small">CALIBRATION &amp; STATE</h2>
-
       <div class="setting-group">
         <label for="slider-sensitivity" class="setting-label">
           <span>LOOK SENSITIVITY</span>
           <span id="sensitivity-value">1.0x</span>
         </label>
-        <input
-          id="slider-sensitivity"
-          class="setting-slider"
-          type="range"
-          min="0.4"
-          max="2.2"
-          step="0.1"
-          value="1.0"
-        />
+        <input id="slider-sensitivity" class="setting-slider" type="range" min="0.4" max="2.2" step="0.1" value="1.0" />
       </div>
-
       <div class="button-stack">
         <button id="btn-resume" class="primary-btn" type="button">RESUME EXPLORATION</button>
         <button id="btn-restart-pause" class="secondary-btn danger-btn" type="button">RESTART EXPERIENCE</button>
@@ -139,7 +113,6 @@
     </div>
   </div>
 
-  <!-- Completion Modal -->
   <div id="completion-screen" class="overlay-screen hidden">
     <div class="panel">
       <p class="subtitle">SEQUENCE COMPLETE</p>
@@ -164,39 +137,6 @@
     </div>
   </div>
 
-  <!-- Self-Diagnostic Boot Loader -->
-    <script type="module">
-    const jsModules = [
-      './src/game/SaveSystem.js',
-      './src/ui/HUD.js',
-      './src/game/Controls.js',
-      './src/game/Effects.js',
-      './src/game/Player.js',
-      './src/game/Interactions.js',
-      './src/game/World.js',
-      './src/game/Game.js',
-      './src/main.js'
-    ];
-
-    async function findBrokenFile() {
-      const report = [];
-      for (const file of jsModules) {
-        try {
-          await import(file + '?v=' + Date.now());
-          report.push('✅ OK: ' + file);
-        } catch (err) {
-          report.push('❌ FIX THIS FILE -> ' + file + '\n   (' + err.message + ')');
-        }
-      }
-      document.getElementById('loading-screen').classList.add('hidden');
-      document.getElementById('webgl-error').classList.remove('hidden');
-      document.getElementById('error-title').textContent = 'BROKEN FILE FOUND';
-      document.getElementById('error-description').textContent = 'Re-paste the code for any file marked with ❌ below:';
-      document.getElementById('error-details').textContent = report.join('\n\n');
-    }
-
-    import('./src/main.js').catch(() => findBrokenFile());
-  </script>
+  <script type="module" src="./src/main.js"></script>
 </body>
 </html>
-  
